@@ -1,5 +1,5 @@
 # Programação Avançada
-###### Projetos da disciplina de tópicos especiais para computação 1
+###### Projetos da disciplina de TEC II
 
 #### Miguel Rodrigues Botelho - 21202191
 
