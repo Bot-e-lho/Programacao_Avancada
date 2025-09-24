@@ -1,0 +1,7 @@
+--- Resumo ---
+Start: 2025-09-24T21:10:04.860896
+End: 2025-09-24T21:10:42.509829
+Duracao (s): 37.65
+Total cliques: 21
+Cliques nos objetos: 10
+Mouse path: 699
