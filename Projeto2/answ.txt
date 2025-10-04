@@ -1,0 +1,5 @@
+- Descreva uma aplicação que acha interessante e que utiliza diagrama de voronoy, colocar isso num arquivo junto no git
+R.: Muito utilizado em sistemas de localização, seguindo uma lógica fora dessa, o que eu achei, foi a utilizaçaõ em computação gráfica, onde ela ajuda a gerar texturas(terrenos) mais realistas.
+
+- Existe diferença de custo computacional dependendo da distribuição de pontos?
+R.: Como podemos ver pelos gráficos, sim e não. Sim por ser minima mas existente. Não por ao generalizarmos não temos uma diferença significativa. As três distribuições foram escolhidas para abordar diferentes tipos de distribuições de pontos, e em todos a curva do tempo foram bem próximas, isso conforme o número de pontos aumenta.
