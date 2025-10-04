@@ -3,3 +3,8 @@ R.: Muito utilizado em sistemas de localização, seguindo uma lógica fora dess
 
 - Existe diferença de custo computacional dependendo da distribuição de pontos?
 R.: Como podemos ver pelos gráficos, sim e não. Sim por ser minima mas existente. Não por ao generalizarmos não temos uma diferença significativa. As três distribuições foram escolhidas para abordar diferentes tipos de distribuições de pontos, e em todos a curva do tempo foram bem próximas, isso conforme o número de pontos aumenta.
+
+
+Links de referencia:
+https://clubedogis.com.br/glossario/o-que-e-voronoi-diagram
+https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwjm_PXorYuQAxVDKLkGHcfYG3cQFnoECBkQBg&url=https%3A%2F%2Fwww.analyticsvidhya.com%2Fblog%2F2024%2F01%2Fa-quick-overview-of-voronoi-diagrams%2F&usg=AOvVaw3JI1NWsnMnv-ETo3IcyEoO&opi=89978449
