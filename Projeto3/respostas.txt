@@ -1,0 +1,14 @@
+ - Diga qual a relação de envoltória convexa com o diagrama de Voronoi
+
+
+R.: A relação é de uma certa dualidade na geometria, onde basicamente existe um ponto de conexão onde a envoltória convexa é definida pelos pontos do conjunto que geram regiões de Voronoi que se estendem pelo infinito. Na realidade, o que eu entendi, essa dualidade existe muito por conta da exploração de algoritmos que usam a triangulação de delaunay como etapa
+
+
+- Sobre o crescimento computacional
+
+R.: Foi mantido os mesmos tipos de distribuição igual do último trabalho, o grid, que seria para ter o pior desempenho ou o mais próximo dele, destaca bem a influencia do parâmetro h da complexidade O(N*h), onde o algoritmo é forçado a processar mais vértices de borda, deixando mais lendo como visto no gráfico, sendo que o linear e o cluster são consideravelmente mais rápidas e se comportam de forma parecida
+
+
+- Sobre a distribuição por quadrante
+
+R.: Depende muito do tipo de distribuição, no linear há um espalhamento mais simétrico, no de cluster há um agrupamento maior nos quadrantes superiores e no grid é o mais irregular, possuindo um enorme dominação na área inferior esquerda
