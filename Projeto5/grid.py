@@ -10,13 +10,13 @@ import heapq
 from ponto import Ponto
 
 try:
-    res_input = input("Digite a Resolução (tamanho de cada célula em px): ")
+    res_input = input("Digite a resolucao (tamanho de cada celula em px): ")
     blockSize = int(res_input) if res_input else 25
 
-    cols_input = input(f"Digite o número de Colunas: ")
+    cols_input = input(f"Digite o numero de colunas: ")
     COLS = int(cols_input) if cols_input else 20
 
-    rows_input = input(f"Digite o número de Linhas: ")
+    rows_input = input(f"Digite o numero de linhas: ")
     ROWS = int(rows_input) if rows_input else 15
 
 except ValueError:
@@ -25,7 +25,7 @@ except ValueError:
     COLS = 20
     ROWS = 15
 
-print(f"Grid criado: {ROWS}x{COLS}, Resolução: {blockSize}px")
+print(f"Grid criado: {ROWS}x{COLS}, resolucao: {blockSize}px")
 
 W, H = 1000, 700
 tela = pygame.display.set_mode((W, H))
@@ -171,7 +171,7 @@ def generate_random_pairs(count):
     free_cells = [(r, c) for r in range(ROWS) for c in range(COLS) if grid[r, c] == 0]
     
     if len(free_cells) < 2:
-        status_message = "Poucas células"
+        status_message = "Poucas celulas"
         return
 
     for _ in range(count):
@@ -195,7 +195,7 @@ def run_all_paths():
             computed_paths.append((path, start, goal))
             num_success += 1
 
-    status_message = f"Execução concluida {num_success}/{len(path_pairs_list)} caminhos encontrados"
+    status_message = f"Execucao concluida {num_success}/{len(path_pairs_list)} caminhos encontrados"
     path_pairs_list = []
 
 def draw_paths(): 
@@ -233,7 +233,7 @@ def draw_all():
 
     draw_text(tela, status_message, 10, 10)
     draw_text(tela, "[1] Obstaculos | [2] Start/Goal", 10, H - 90)
-    draw_text(tela, "[G] Gera Pares Aleatorios | [R] Roda A* | [C] Limpa Tudo", 10, H - 50)
+    draw_text(tela, "[G] Gera Pares Aleatórios | [R] Roda A* | [C] Limpa Tudo", 10, H - 50)
     draw_text(tela, f"Caminhos Encontrados: {len(computed_paths)}", 10, H - 30)
 
 running = True
@@ -258,7 +258,7 @@ while running:
 
         elif event.type == pygame.KEYDOWN:
             
-            if event.key == pygame.K_1: current_mode = 1; status_message = "Modo: Ocupação (1)"
+            if event.key == pygame.K_1: current_mode = 1; status_message = "Modo: Obstaculos (1)"
             elif event.key == pygame.K_2: current_mode = 2; status_message = "Modo: Start/Goal (2)"
 
             elif event.key == pygame.K_g:
