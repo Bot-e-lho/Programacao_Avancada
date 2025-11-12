@@ -213,7 +213,6 @@ def analyze_path_length(grid_size, repeats):
                 "path_length": path_len,
             })
     
-    print(f"Gerado {len(results)} caminhos para a Análise 4.")
     return results
 
 if __name__ == "__main__":
@@ -238,5 +237,6 @@ if __name__ == "__main__":
 
     df = pd.DataFrame(all_results_data)
     df.to_csv(csv_filename, index=False)
+
 
     print(f"\nDados salvos em '{csv_filename}'.")
