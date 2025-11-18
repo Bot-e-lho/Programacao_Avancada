@@ -1,0 +1,1 @@
+Eu teria uma fabrica abstrata que levaria a duas fabricas, por exemplo, uma para windows e outra em linux. Teria que desacoplar algumas logicas do pygame, eu teria os métodos abstratos de criar janela, renderizar e de pegar os eventos de input
