@@ -1,5 +1,5 @@
 ## Miguel Rodrigues Botelho -- 21202191
-## Trabalho 6:  Navegação (OO)
+## Trabalho 6: Fabricas
 
 import pygame
 import sys
@@ -8,274 +8,275 @@ import numpy as np
 import random
 import heapq 
 from ponto import Ponto
+from factories import *
 
-try:
-    res_input = input("Digite a resolucao (tamanho de cada celula em px): ")
-    blockSize = int(res_input)
-
-    cols_input = input(f"Digite o numero de colunas: ")
-    COLS = int(cols_input)
-
-    rows_input = input(f"Digite o numero de linhas: ")
-    ROWS = int(rows_input)
-
-except ValueError:
-    print("Usando valores padrao")
-    blockSize = 35
-    COLS = 15
-    ROWS = 10
-
-print(f"Grid criado: {ROWS}x{COLS}, resolucao: {blockSize}px")
-
-W, H = 1000, 700
-tela = pygame.display.set_mode((W, H))
-pygame.display.set_caption("Navegação")
-clock = pygame.time.Clock()
-tela.fill((173, 216, 230))
-pygame.font.init()
-
-GRID_WIDTH = COLS * blockSize
-GRID_HEIGHT = ROWS * blockSize
-off_x = (W - GRID_WIDTH) // 2
-
-off_y = (H - GRID_HEIGHT) // 2
-start = (0, 215, 0)
-goal = (215, 0, 0)
-colors = [(255, 0, 255), (0, 255, 255), (255, 255, 0), (100, 100, 255), (255, 150, 50), (100, 25, 50)]
-text = (8, 8, 8) 
-obstacle = (52, 52, 52) 
-
-
-current_mode = 1 
-current_path_pair = [None, None]
-path_pairs_list = [] 
-computed_paths = [] 
-status_message = "Modo: Adicionando obstaculos (1)"
-grid = np.zeros((ROWS, COLS), dtype=int)
-
-
-def draw_grid():
-    for r in range(ROWS):
-        for c in range(COLS):
-            rect = pygame.Rect(off_x + c * blockSize, off_y + r * blockSize, blockSize, blockSize)
-            
-            color = obstacle if grid[r, c] == 1 else (255,255,255)
-            pygame.draw.rect(tela, color, rect)
-            pygame.draw.rect(tela, (12,8,20), rect, 1)
-
-def pos_to_grid(x, y):
-    x_relative = x - off_x
-    y_relative = y - off_y
+class NavigationApp:
     
-    if 0 <= x_relative < GRID_WIDTH and 0 <= y_relative < GRID_HEIGHT:
-        c = int(x_relative // blockSize)
-        r = int(y_relative // blockSize)
-        return (r, c)
-    return None
+    def __init__(self):
+        self.W, self.H = 1000, 700
+        self.tela = pygame.display.set_mode((self.W, self.H))
+        pygame.display.set_caption("Fabricas")
+        self.clock = pygame.time.Clock()
+        pygame.font.init()
+        
+        self.blockSize, self.COLS, self.ROWS = self.get_user_config()
+        
+        self.GRID_WIDTH = self.COLS * self.blockSize
+        self.GRID_HEIGHT = self.ROWS * self.blockSize
+        self.off_x = (self.W - self.GRID_WIDTH) // 2
+        self.off_y = (self.H - self.GRID_HEIGHT) // 2
 
-def grid_to_pos(r, c):
-    center_x = off_x + c * blockSize + blockSize / 2
-    center_y = off_y + r * blockSize + blockSize / 2
-    return Ponto(center_x, center_y)
+        self.colors = {
+            "start": (0, 215, 0),
+            "goal": (215, 0, 0),
+            "obstacle": (52, 52, 52),
+            "free": (255, 255, 255),
+            "text": (8, 8, 8),
+            "path": [(255, 0, 255), (0, 255, 255), (255, 255, 0), (100, 100, 255), (255, 150, 50)]
+        }
+        self.grid_factory = GridFactory()
+        self.obstacle_factory = ObstacleFactory()
+        self.grid = self.grid_factory.create_grid(self.ROWS, self.COLS, self.colors["free"])
+        path_factories = {
+            "A*_HV": VH_A_Star_Factory(),
+            "A*_DIAG": Diag_A_Star_Factory(),
+            "DIJKSTRA_HV": Factory_Dijkstra(),
+            "DIJKSTRA_DIAG": Factory_Dijkstra_Diag() 
+        }
+        self.algo_keys = list(path_factories.keys()) 
+        self.current_algo_index = 0
 
+        self.task_factory = TaskFactory(path_factories, self.colors["path"])
+        self.current_mode = 1 
+        self.current_path_pair = [None, None]
+        self.task_list = [] 
+        self.completed_tasks = [] 
+        self.obstacle_keys = ["wall", "movable"]
+        self.current_obstacle_index = 0
+        self.update_status_message()
+        
+    def get_user_config(self):
+        try:
+            res_input = input("Digite a resolucao (tamanho de cada celula em px): ")
+            blockSize = int(res_input)
+            cols_input = input(f"Digite o numero de colunas: ")
+            COLS = int(cols_input)
+            rows_input = input(f"Digite o numero de linhas: ")
+            ROWS = int(rows_input)
+        except ValueError:
+            blockSize, COLS, ROWS = 25, 20, 15
+        print(f"Grid criado: {ROWS}x{COLS}, resolucao: {blockSize}px")
+        return blockSize, COLS, ROWS
 
-def draw_text(surface, text_str, x, y, color=text, font_size=14):
-    font = pygame.font.Font(None, font_size)
-    text_surface = font.render(text_str, True, color)
-    surface.blit(text_surface, (x, y))
+    def pos_to_grid(self, x, y):
+        x_relative = x - self.off_x
+        y_relative = y - self.off_y
+        if 0 <= x_relative < self.GRID_WIDTH and 0 <= y_relative < self.GRID_HEIGHT:
+            c = int(x_relative // self.blockSize)
+            r = int(y_relative // self.blockSize)
+            return (r, c)
+        return None
 
+    def update_status_message(self):
+        if self.current_mode == 1:
+            self.status_message = "Modo: Obstaculos (1)"
+        elif self.current_mode == 2:
+            algo_name = self.algo_keys[self.current_algo_index]
+            self.status_message = f"Modo: Start/Goal (2) | Algoritmo: {algo_name}"
 
-def heuristic(a, b):
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])
-
-
-def a_star(start, goal):
+    def grid_to_pos(self, r, c):
+        center_x = self.off_x + c * self.blockSize + self.blockSize / 2
+        center_y = self.off_y + r * self.blockSize + self.blockSize / 2
+        return Ponto(center_x, center_y)
     
-    if grid[start] == 1 or grid[goal] == 1:
-        return []
+    def generate_random_obstacles(self, percentage=0.2):
+        self.status_message = f"Adicionando {percentage*100}% de obstaculos"
+        self.completed_tasks = [] 
+        
+        key = self.obstacle_keys[self.current_obstacle_index]
+        self.grid.fill_random_obstacles(self.obstacle_factory, key, percentage)
+        
+        self.status_message = f"Obstaculos aleatorios adicionados"
 
-    g_score = { (r, c): float('inf') for r in range(ROWS) for c in range(COLS) }
-    g_score[start] = 0
-    
-    f_score = { (r, c): float('inf') for r in range(ROWS) for c in range(COLS) }
-    f_score[start] = heuristic(start, goal)
-    
-    open_set = [(f_score[start], start)]
-    came_from = {} 
+    def handle_click(self, pos):
+        cell = self.pos_to_grid(pos[0], pos[1])
+        if cell is None: return
 
-    while open_set:
-        current_f, current_node = heapq.heappop(open_set)
+        if self.current_mode == 1:
+            key = self.obstacle_keys[self.current_obstacle_index]
+            self.grid.toggle_obstacle(cell[0], cell[1], self.obstacle_factory, key)
+            self.completed_tasks = [] 
+            self.update_status_message()
         
-        if current_node == goal:
-            path = []
-            while current_node in came_from:
-                path.append(current_node)
-                current_node = came_from[current_node]
-            path.append(start)
-            return path[::-1] 
-        
-        r, c = current_node
-        
-        neighbors = [(r-1, c), (r+1, c), (r, c-1), (r, c+1)] 
-        
-        for neighbor in neighbors:
-            nr, nc = neighbor
-            
-            if 0 <= nr < ROWS and 0 <= nc < COLS and grid[nr, nc] == 0:
-                tentative_g_score = g_score[current_node] + 1
+        elif self.current_mode == 2:
+            if self.grid.data[cell] is not None:
+                self.status_message = "Celula ocupada"
+                return
+
+            if self.current_path_pair[0] is None:
+                self.current_path_pair[0] = cell
+                self.status_message = f"Start: {cell}"
+            elif self.current_path_pair[1] is None:
+                if cell == self.current_path_pair[0]:
+                    self.status_message = "Start e goal devem ser diferentes"
+                    return
                 
-                if tentative_g_score < g_score.get(neighbor, float('inf')):
-                    came_from[neighbor] = current_node
-                    g_score[neighbor] = tentative_g_score
-                    f_score[neighbor] = tentative_g_score + heuristic(neighbor, goal)
-                    
-                    heapq.heappush(open_set, (f_score[neighbor], neighbor))
-                        
-    return []
+                self.current_path_pair[1] = cell
+                start, goal = self.current_path_pair
+                
+                algo_key = self.algo_keys[self.current_algo_index]
+                new_task = self.task_factory.create_task(start, goal, algo_key)
+                self.task_list.append(new_task)
+                
+                self.status_message = f"Tarefa ({algo_key}) adicionada. Total: {len(self.task_list)}."
+                self.current_path_pair = [None, None]
 
-
-def handle_grid_planning(pos):
-    global current_path_pair, status_message, path_pairs_list
-    
-    if current_path_pair is None:
-        current_path_pair = [None, None]
-    
-    cell = pos_to_grid(pos[0], pos[1])
-    if cell is None:
-        return
+    def generate_random_pairs(self, count):
+        self.task_list = []
+        free_cells = [(r, c) for r in range(self.ROWS) for c in range(self.COLS) if self.grid.data[r, c] is None]
         
-    if grid[cell] == 1:
-        status_message = ""
-        return
-
-    if current_path_pair[0] is None:
-        current_path_pair[0] = cell
-        status_message = f""
-        
-    elif current_path_pair[1] is None:
-        if cell == current_path_pair[0]:
-            status_message = ""
+        if len(free_cells) < 2:
+            self.status_message = "Poucas celulas livres"
             return
-            
-        current_path_pair[1] = cell
-        
-        path_pairs_list.append(tuple(current_path_pair))
-        status_message = f"Par ({current_path_pair[0]} -> {current_path_pair[1]}) adicionado. Total: {len(path_pairs_list)}"
-        
-        current_path_pair = [None, None]
 
-
-def generate_random_pairs(count):
-    global path_pairs_list, status_message
-    path_pairs_list = []
-    
-    free_cells = [(r, c) for r in range(ROWS) for c in range(COLS) if grid[r, c] == 0]
-    
-    if len(free_cells) < 2:
-        status_message = "Poucas celulas"
-        return
-
-    for _ in range(count):
-        start = random.choice(free_cells)
-        goal = random.choice(free_cells)
-        while start == goal:
+        for _ in range(count):
+            start = random.choice(free_cells)
             goal = random.choice(free_cells)
+            while start == goal:
+                goal = random.choice(free_cells)
             
-        path_pairs_list.append((start, goal))
+            algo_key = random.choice(self.algo_keys)
+            new_task = self.task_factory.create_task(start, goal, algo_key)
+            self.task_list.append(new_task)
+        self.status_message = f"{count} pares gerados aleatoriamente"
+
+    def run_all_paths(self):
+        self.completed_tasks = []
+        if not self.task_list:
+            self.status_message = "Nenhuma tarefa na fila"
+            return
+
+        num_success = 0
+        grid_data = self.grid.get_data()
+        total_tasks = len(self.task_list)
         
-    status_message = f"{count} pares gerados aleatoriamente"
+        for task in self.task_list:
+            path = task.pathfinder.find_path(grid_data, task.start, task.goal)
+            if path:
+                task.path = path
+                self.completed_tasks.append(task)
+                num_success += 1
 
-def run_all_paths():
-    global computed_paths, path_pairs_list, status_message
-    computed_paths = []
+        self.status_message = f"{len(self.task_list)} caminhos encontrados"
+        self.task_list = []
 
-    num_success = 0
-    for start, goal in path_pairs_list:
-        path = a_star(start, goal)
-        if path:
-            computed_paths.append((path, start, goal))
-            num_success += 1
 
-    status_message = f"Execucao concluida {num_success}/{len(path_pairs_list)} caminhos encontrados"
-    path_pairs_list = []
+    def draw_text(self, text_str, x, y, font_size=14):
+        font = pygame.font.Font(None, font_size)
+        text_surface = font.render(text_str, True, self.colors["text"])
+        self.tela.blit(text_surface, (x, y))
 
-def draw_paths(): 
-    for idx, (start_node, goal_node) in enumerate(path_pairs_list):
-        if start_node and grid[start_node] == 0:
-            start_pos = grid_to_pos(start_node[0], start_node[1])
-            pygame.draw.circle(tela, start, start_pos.int_pos(), blockSize // 4) 
-        if goal_node and grid[goal_node] == 0:
-            goal_pos = grid_to_pos(goal_node[0], goal_node[1])
-            pygame.draw.rect(tela, goal, pygame.Rect(goal_pos.x - blockSize/4, goal_pos.y - blockSize/4, blockSize/2, blockSize/2))
-
-    for idx, (path, start_node, goal_node) in enumerate(computed_paths):
-        path_color = colors[idx % len(colors)]
-        if path:
-            point_tuples = []
-            for r, c in path:
-                pos = grid_to_pos(r, c)
-                point_tuples.append(pos.int_pos())
+    def draw_paths(self): 
+        for task in self.task_list:            
+            if task.start and self.grid.data[task.start] is None:
+                start_pos = self.grid_to_pos(task.start[0], task.start[1])
+                pygame.draw.circle(self.tela, self.colors["start"], start_pos.int_pos(), self.blockSize // 4) 
             
-            if len(point_tuples) > 1:
-                pygame.draw.lines(tela, path_color, False, point_tuples, 3)
-        
-        start_pos = grid_to_pos(start_node[0], start_node[1])
-        pygame.draw.circle(tela, path_color, start_pos.int_pos(), blockSize // 3)
-        
-        goal_pos = grid_to_pos(goal_node[0], goal_node[1])
-        goal_rect = pygame.Rect(goal_pos.x - blockSize / 3, goal_pos.y - blockSize / 3, blockSize * 2 / 3, blockSize * 2 / 3)
-        pygame.draw.rect(tela, path_color, goal_rect)
+            if task.goal and self.grid.data[task.goal] is None:
+                goal_pos = self.grid_to_pos(task.goal[0], task.goal[1])
+                pygame.draw.rect(self.tela, self.colors["goal"], pygame.Rect(goal_pos.x - self.blockSize/4, goal_pos.y - self.blockSize/4, self.blockSize/2, self.blockSize/2))
 
-
-def draw_all():
-    tela.fill((173, 216, 230))
-    draw_grid()
-    draw_paths()
-
-    draw_text(tela, status_message, 10, 10)
-    draw_text(tela, "[1] Obstaculos | [2] Start/Goal", 10, H - 90)
-    draw_text(tela, "[G] Gera Pares Aleatórios | [R] Roda A* | [C] Limpa Tudo", 10, H - 50)
-    draw_text(tela, f"Caminhos Encontrados: {len(computed_paths)}", 10, H - 30)
-
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                pos = pygame.mouse.get_pos()
+        for task in self.completed_tasks:
+            path_color = task.color
+            
+            if task.path:
+                points_on_path = [self.grid_to_pos(r, c).int_pos() for r, c in task.path]
                 
-                if current_mode == 1:
-                    cell = pos_to_grid(pos[0], pos[1])
-                    if cell is not None:
-                        r, c = cell
-                        grid[r, c] = 1 - grid[r, c] 
-                        computed_paths = [] 
-                        status_message = f"Célula {cell} alterada. Caminhos antigos invalidados."
-                elif current_mode == 2:
-                    handle_grid_planning(pos)
-
-        elif event.type == pygame.KEYDOWN:
+                if len(points_on_path) > 1:
+                    
+                    algo_key = getattr(task, "algorithm_key", "")
+                    is_hv_only = "HV" in algo_key
+                    
+                    if is_hv_only:
+                        for i in range(len(points_on_path) - 1):
+                            p1 = points_on_path[i]
+                            p2 = points_on_path[i+1]
+                            
+                            p_mid = (p1[0], p2[1]) 
+                            
+                            pygame.draw.lines(self.tela, path_color, False, [p1, p_mid, p2], 3)
+                    else:
+                        pygame.draw.lines(self.tela, path_color, False, points_on_path, 3)
             
-            if event.key == pygame.K_1: current_mode = 1; status_message = "Modo: Obstaculos (1)"
-            elif event.key == pygame.K_2: current_mode = 2; status_message = "Modo: Start/Goal (2)"
+            start_pos = self.grid_to_pos(task.start[0], task.start[1])
+            pygame.draw.circle(self.tela, path_color, start_pos.int_pos(), self.blockSize // 3)
+            goal_pos = self.grid_to_pos(task.goal[0], task.goal[1])
+            goal_rect = pygame.Rect(goal_pos.x - self.blockSize / 3, goal_pos.y - self.blockSize / 3, self.blockSize * 2 / 3, self.blockSize * 2 / 3)
+            pygame.draw.rect(self.tela, path_color, goal_rect)
 
-            elif event.key == pygame.K_g:
-                generate_random_pairs(5) 
-            
-            elif event.key == pygame.K_r:
-                run_all_paths()
-                
-            elif event.key == pygame.K_c:
-                grid.fill(0); computed_paths = []; path_pairs_list = []; current_path_pair = [None, None]
-                status_message = "Tudo limpo."
-
-    draw_all()
-    pygame.display.flip()
-    clock.tick(60)
-
-pygame.quit()
-sys.exit()
+    def draw_all(self):
+        self.tela.fill((173, 216, 230))
         
+        self.grid.draw(self.tela, self.off_x, self.off_y, self.blockSize)
+        
+        self.draw_paths()
+
+        self.draw_text(self.status_message, 10, 10)
+        self.draw_text("[1] Obstaculos | [2] Start/Goal", 10, self.H - 90)
+        self.draw_text("[G] Gerar pares | [R] Rodar | [O] Obstac. aleatorios", 10, self.H - 70)
+        self.draw_text("[C] Limpar | [T] Trocar algoritmo | [M] Trocar bbstaculo", 10, self.H - 50)
+        
+        algo_name = self.algo_keys[self.current_algo_index]
+        self.draw_text(f"Algoritmo atual: {algo_name}", 10, self.H - 30)
+
+    def run(self):
+        running = True
+        while running:
+            self.grid.update_movables()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        self.handle_click(pygame.mouse.get_pos())
+
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_1: 
+                        self.current_mode = 1
+                    elif event.key == pygame.K_2: 
+                        self.current_mode = 2
+                    
+                    elif event.key == pygame.K_g:
+                        self.generate_random_pairs(5) 
+                    
+                    elif event.key == pygame.K_r:
+                        self.run_all_paths()
+                    
+                    elif event.key == pygame.K_t:
+                        self.current_algo_index = (self.current_algo_index + 1) % len(self.algo_keys)
+
+                    elif event.key == pygame.K_o:
+                        self.generate_random_obstacles(0.2)
+                    
+                    elif event.key == pygame.K_m: 
+                        self.current_obstacle_index = (self.current_obstacle_index + 1) % len(self.obstacle_keys)
+
+                    elif event.key == pygame.K_c:
+                        self.grid.clear()
+                        self.completed_tasks = []
+                        self.task_list = []
+                        self.current_path_pair = [None, None]
+                        
+                    self.update_status_message() 
+
+            self.draw_all()
+            pygame.display.flip()
+            self.clock.tick(60)
+
+        pygame.quit()
+        sys.exit()
+
+if __name__ == "__main__":
+    app = NavigationApp()
+    app.run()
