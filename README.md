@@ -11,7 +11,7 @@
 | 3  | 17/10/25, 19:25 | [Link](https://github.com/Bot-e-lho/Programacao_Avancada/tree/main/Projeto3) | Sim |
 | 4  | 25/10/25, 15:13 | [Link](https://github.com/Bot-e-lho/Programacao_Avancada/tree/main/Projeto4) | Sim |
 | 5  | 11/11/25, 23:10 | [Link](https://github.com/Bot-e-lho/Programacao_Avancada/tree/main/Projeto5) | Sim |
-| 6  |  |  |  |
+| 6  | 18/11/25, 13:50 | [Link](https://github.com/Bot-e-lho/Programacao_Avancada/tree/main/Projeto6) | Sim |
 | 7  |  |  |  |
 | 8  |  |  |  |
 | 9  |  |  |  |
