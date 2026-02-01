@@ -150,6 +150,8 @@ class NavigationApp:
         self.game_observer = ObserverA()
         self.agents = []
         self.quality_data = []
+        self.all_data = [] 
+        self.current_avoidance_name = "Sem Comunicacao"
 
         self.current_mode = 1 
         self.current_path_pair = [None, None]
@@ -189,7 +191,7 @@ class NavigationApp:
     def update_status_message(self):
         obst = self.obstacle_keys[self.current_obstacle_index]
         algo = self.algo_keys[self.current_algo_index]
-        self.status_message = f"Grid: {self.grid_type.upper()} | Obst: {obst} | Algoritmo: {algo}"
+        self.status_message = f"Grid: {self.grid_type.upper()} | Obst: {obst} | Algoritmo: {algo} | Col: {self.current_avoidance_name}"
 
     def grid_to_pos(self, r, c):
         pixel_pos = self.grid.get_pos(r, c, self.off_x, self.off_y, self.blockSize)
@@ -247,6 +249,12 @@ class NavigationApp:
             if path:
                 new_agent = Agent(i, task.start, path, task.color, self.grid)
                 new_agent.attach(self.game_observer)
+                if self.current_avoidance_name == "Sem Comunicacao":
+                    new_agent.set_avoidance_method(NoCommunicationStrategy())
+                elif self.current_avoidance_name == "Indireta":
+                    new_agent.set_avoidance_method(IndirectCommunicationStrategy())
+                elif self.current_avoidance_name == "Direta (RVO)":
+                    new_agent.set_avoidance_method(DirectCommunicationStrategy())
                 self.agents.append(new_agent)
         
         self.task_list = [] 
@@ -311,23 +319,44 @@ class NavigationApp:
         running = True
         self.data = []
         frame_count = 0
+        simulation_id = 0 
+        is_simulating = False
 
         while running:
             self.grid.update_movables()
             active_agents = [agent for agent in self.agents if not agent.finished]
             
+            if active_agents and not is_simulating:
+                is_simulating = True
+                simulation_id += 1
+                frame_count = 0
+            elif not active_agents:
+                is_simulating = False
+            
             if hasattr(self.grid, 'clear_reservations'): 
                 self.grid.clear_reservations()
 
-            if active_agents:
+            if is_simulating and active_agents:
+                for a in active_agents:
+                    a.is_colliding = False
+                    for b in active_agents:
+                        if a != b:
+                            dist = np.linalg.norm(a.pos.pos() - b.pos.pos())
+                            if dist < (a.radius + b.radius):
+                                a.is_colliding = True
+                                break
                 deviation = sum(np.linalg.norm(a.velocity - a.desired_v_cache) for a in active_agents) / len(active_agents)
-                self.quality_data.append(deviation)
+                collisions = sum(1 for a in active_agents if a.is_colliding)
                 
-                self.data.append({
+                self.all_data.append({
+                    "sim_id": simulation_id,
                     "frame": frame_count,
-                    "active": len(active_agents),
-                    "colliding": sum(1 for a in self.agents if a.is_colliding),
-                    "quality_dev": deviation
+                    "active_agents": len(active_agents),
+                    "collisions": collisions,
+                    "quality_deviation": deviation,
+                    "strategy": self.current_avoidance_name,
+                    "path_algo": self.algo_keys[self.current_algo_index],
+                    "timestamp": datetime.datetime.now().isoformat()
                 })
                 frame_count += 1
 
@@ -337,7 +366,14 @@ class NavigationApp:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                
+                    if self.all_data:
+                        print("Salvando dados")
+                        df = pd.DataFrame(self.all_data)
+                        df.to_csv("dados_simulacao.csv", index=False)
+                        print("Salvo")
+                    else:
+                        print("Nenhum dado gerado para salvar")
+
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         self.handle_click(pygame.mouse.get_pos())
@@ -382,33 +418,21 @@ class NavigationApp:
                             self.agents[0].take_damage(50)
                     
                     elif event.key == pygame.K_j:
-                        for a in self.agents: 
-                            a.set_avoidance_method(NoCommunicationStrategy())
+                        self.current_avoidance_name = "Sem Comunicacao"
+                        for a in self.agents: a.set_avoidance_method(NoCommunicationStrategy())
                     elif event.key == pygame.K_k:
-                        for a in self.agents: 
-                            a.set_avoidance_method(IndirectCommunicationStrategy())
+                        self.current_avoidance_name = "Indireta"
+                        for a in self.agents: a.set_avoidance_method(IndirectCommunicationStrategy())
                     elif event.key == pygame.K_l:
-                        for a in self.agents: 
-                            a.set_avoidance_method(DirectCommunicationStrategy())
+                        self.current_avoidance_name = "Direta (RVO)"
+                        for a in self.agents: a.set_avoidance_method(DirectCommunicationStrategy())
 
                     self.update_status_message() 
 
             self.draw_all()
             pygame.display.flip()
             self.clock.tick(60)
-        
-        if self.quality_data:
-            plt.figure(figsize=(10, 5))
-            plt.subplot(1, 2, 1)
-            plt.plot(self.quality_data)
-            plt.title("Qualidade: Desvio da Rota Ideal")
-            plt.xlabel("Frames")
-            plt.ylabel("Erro de Velocidade")
-            
-            plt.subplot(1, 2, 2)
-            plt.plot([d["colliding"] for d in self.data])
-            plt.title("Performance: Concorrência/Colisões")
-            plt.show()
+    
 
         pygame.quit()
         sys.exit()
